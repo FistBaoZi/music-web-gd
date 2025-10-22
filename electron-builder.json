@@ -1,0 +1,48 @@
+{
+  "appId": "com.musicplayer.app",
+  "productName": "在线音乐播放器",
+  "copyright": "Copyright © 2025",
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "build/icon.ico",
+    "artifactName": "${productName}-${version}-Setup.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "在线音乐播放器",
+    "perMachine": false,
+    "deleteAppDataOnUninstall": false
+  },
+  "mac": {
+    "target": [
+      "dmg"
+    ],
+    "icon": "build/icon.icns",
+    "category": "public.app-category.music"
+  },
+  "linux": {
+    "target": [
+      "AppImage"
+    ],
+    "icon": "build/icon.png",
+    "category": "Audio"
+  }
+}

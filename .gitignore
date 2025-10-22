@@ -11,3 +11,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Electron 相关
+dist-electron
+release
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+
+# Electron 构建缓存
+out
+build/cache
