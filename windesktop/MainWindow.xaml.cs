@@ -162,7 +162,7 @@ public partial class MainWindow : Window
             if (notifyIcon != null)
             {
                 notifyIcon.Visible = true;
-                notifyIcon.ShowBalloonTip(2000, "在线音乐播放器", "已最小化到系统托盘", ToolTipIcon.Info);
+                // 不显示气泡通知，静默最小化到托盘
             }
         }
     }

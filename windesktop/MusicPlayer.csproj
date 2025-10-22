@@ -38,7 +38,7 @@
     
     <!-- 嵌入应用图标 -->
     <None Update="icon.ico">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
