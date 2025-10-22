@@ -51,6 +51,21 @@
         </div>
       </div>
     </div>
+
+    <!-- 清空确认对话框 -->
+    <div v-if="showClearConfirm" class="confirm-overlay" @click="cancelClearPlaylist">
+      <div class="confirm-dialog" @click.stop>
+        <div class="confirm-header">
+          <i class="fas fa-exclamation-triangle"></i>
+          <h3>确认清空</h3>
+        </div>
+        <p class="confirm-message">确定要清空播放列表吗？此操作不可撤销。</p>
+        <div class="confirm-actions">
+          <button @click="cancelClearPlaylist" class="cancel-btn">取消</button>
+          <button @click="confirmClearPlaylist" class="confirm-btn">确认清空</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -66,6 +81,7 @@ const playlist = computed(() => musicStore.playlist)
 const currentIndex = computed(() => musicStore.currentIndex)
 
 const loadingSongIndex = ref(null)
+const showClearConfirm = ref(false)
 
 const playSong = async (song, index) => {
   loadingSongIndex.value = index
@@ -81,10 +97,17 @@ const removeFromPlaylist = (index) => {
 }
 
 const clearPlaylist = () => {
-  if (confirm('确定要清空播放列表吗?')) {
-    musicStore.clearPlaylist()
-    toast.success('播放列表已清空')
-  }
+  showClearConfirm.value = true
+}
+
+const confirmClearPlaylist = () => {
+  musicStore.clearPlaylist()
+  showClearConfirm.value = false
+  toast.success('播放列表已清空')
+}
+
+const cancelClearPlaylist = () => {
+  showClearConfirm.value = false
 }
 
 const downloadSong = async (song) => {
@@ -124,9 +147,17 @@ const downloadFromUrl = (url, filename) => {
   console.log(`正在下载: ${filename}`)
 }
 
-const formatSize = (kb) => {
-  if (kb < 1024) return kb + ' KB'
-  return (kb / 1024).toFixed(2) + ' MB'
+const formatSize = (sizeInKB) => {
+  // API 返回的 size 单位是 KB
+  const kb = parseFloat(sizeInKB)
+  if (isNaN(kb)) return '--'
+  
+  if (kb < 1024) {
+    return kb.toFixed(2) + ' KB'
+  } else {
+    const mb = kb / 1024
+    return mb.toFixed(2) + ' MB'
+  }
 }
 </script>
 
@@ -367,5 +398,116 @@ const formatSize = (kb) => {
 .song-actions button:last-child:hover {
   background: #e84118 !important;
   box-shadow: 0 2px 8px rgba(255, 71, 87, 0.4);
+}
+
+/* 确认对话框样式 */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.confirm-dialog {
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  border-radius: 16px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(100, 255, 218, 0.2);
+  animation: slideIn 0.3s;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.confirm-header i {
+  font-size: 24px;
+  color: #ffa502;
+}
+
+.confirm-header h3 {
+  font-size: 20px;
+  color: #ccd6f6;
+  margin: 0;
+}
+
+.confirm-message {
+  color: #8892b0;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.confirm-actions button {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancel-btn {
+  background: rgba(100, 255, 218, 0.1);
+  color: #64ffda;
+  border: 1px solid rgba(100, 255, 218, 0.3);
+}
+
+.cancel-btn:hover {
+  background: rgba(100, 255, 218, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 255, 218, 0.2);
+}
+
+.confirm-btn {
+  background: #ff4757;
+  color: white;
+}
+
+.confirm-btn:hover {
+  background: #e84118;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4);
 }
 </style>
