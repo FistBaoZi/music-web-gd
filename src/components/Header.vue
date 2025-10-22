@@ -93,10 +93,18 @@ const handleSearch = () => {
   flex: 1;
   max-width: 500px;
   margin: 0 30px;
-  background: white;
+  background: rgba(30, 30, 50, 0.6);
+  border: 1px solid rgba(100, 255, 218, 0.3);
   border-radius: 25px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s;
+}
+
+.search-bar:focus-within {
+  background: rgba(30, 30, 50, 0.8);
+  border-color: rgba(100, 255, 218, 0.6);
+  box-shadow: 0 0 20px rgba(100, 255, 218, 0.2);
 }
 
 .search-bar input {
@@ -105,6 +113,12 @@ const handleSearch = () => {
   border: none;
   outline: none;
   font-size: 14px;
+  background: transparent;
+  color: #ccd6f6;
+}
+
+.search-bar input::placeholder {
+  color: #8892b0;
 }
 
 .search-bar button {
