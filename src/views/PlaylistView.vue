@@ -165,7 +165,9 @@ const formatSize = (sizeInKB) => {
 .playlist-view {
   padding: 30px;
   position: relative;
-  min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .playlist-header {
@@ -175,6 +177,7 @@ const formatSize = (sizeInKB) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
+  flex-shrink: 0;
 }
 
 .playlist-header h2 {
@@ -237,9 +240,30 @@ const formatSize = (sizeInKB) => {
 .song-list {
   background: rgba(30, 30, 50, 0.4);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(100, 255, 218, 0.1);
+  flex: 1;
+  height: 100%;
+}
+
+.song-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.song-list::-webkit-scrollbar-track {
+  background: rgba(30, 30, 50, 0.4);
+  border-radius: 4px;
+}
+
+.song-list::-webkit-scrollbar-thumb {
+  background: rgba(100, 255, 218, 0.3);
+  border-radius: 4px;
+}
+
+.song-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 255, 218, 0.5);
 }
 
 .song-item {
@@ -257,7 +281,6 @@ const formatSize = (sizeInKB) => {
 
 .song-item.playing {
   background: linear-gradient(90deg, rgba(100, 255, 218, 0.15), transparent);
-  border-left: 3px solid #64ffda;
 }
 
 .song-index {

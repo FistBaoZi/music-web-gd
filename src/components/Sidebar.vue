@@ -89,7 +89,6 @@ nav {
 
 .nav-item.active {
   background: rgba(100, 255, 218, 0.15);
-  border-right: 4px solid #64ffda;
   font-weight: 600;
   color: #64ffda;
   box-shadow: 0 0 15px rgba(100, 255, 218, 0.2);

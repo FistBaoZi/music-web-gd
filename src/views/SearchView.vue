@@ -337,7 +337,6 @@ onUnmounted(() => {
 
 .song-item.playing {
   background: linear-gradient(90deg, rgba(100, 255, 218, 0.15), transparent);
-  border-left: 3px solid #64ffda;
 }
 
 .song-index {
