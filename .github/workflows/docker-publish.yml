@@ -1,0 +1,142 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (例如: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+        type: string
+
+env:
+  REGISTRY_GHCR: ghcr.io
+  IMAGE_NAME: music-web-gd
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: 安装依赖
+      run: npm ci
+
+    - name: 构建项目
+      run: npm run build
+
+    - name: 设置 Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 登录到 GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY_GHCR }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 构建镜像标签
+      run: |
+        REPO_OWNER_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        echo "IMAGE_TAG=${{ env.REGISTRY_GHCR }}/${REPO_OWNER_LOWER}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        echo "IMAGE_LATEST=${{ env.REGISTRY_GHCR }}/${REPO_OWNER_LOWER}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_ENV
+
+    - name: 构建并推送 Docker 镜像
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ${{ env.IMAGE_TAG }}
+          ${{ env.IMAGE_LATEST }}
+        platforms: linux/amd64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: 生成部署说明
+      run: |
+        cat << EOF > deployment-instructions.md
+        # Music Web GD - Docker 部署说明
+        
+        ## 镜像信息
+        - **版本**: ${{ github.event.inputs.version }}
+        - **镜像**: \`${{ env.IMAGE_TAG }}\`
+        - **构建时间**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+        - **仓库**: GitHub Container Registry
+        
+        ## 快速部署
+        
+        ### 使用 Docker 运行
+        \`\`\`bash
+        docker run -d \\
+          --name music-web-gd \\
+          -p 80:80 \\
+          ${{ env.IMAGE_TAG }}
+        \`\`\`
+        
+        ### 使用 Docker Compose
+        \`\`\`yaml
+        version: '3.8'
+        services:
+          music-web-gd:
+            image: ${{ env.IMAGE_TAG }}
+            container_name: music-web-gd
+            ports:
+              - "80:80"
+            restart: unless-stopped
+            environment:
+              - TZ=Asia/Shanghai
+        \`\`\`
+        
+        ### 自定义端口运行
+        \`\`\`bash
+        docker run -d \\
+          --name music-web-gd \\
+          -p 8080:80 \\
+          ${{ env.IMAGE_TAG }}
+        \`\`\`
+        
+        ## 访问地址
+        部署完成后，可通过以下地址访问：
+        - 本地访问: http://localhost
+        - 自定义端口: http://localhost:8080
+        
+        ## 镜像特性
+        - 基于 Nginx Alpine 镜像，体积小巧
+        - 支持 gzip 压缩
+        - 自动处理 SPA 路由
+        - 优化的缓存策略
+        - 多架构支持 (amd64/arm64)
+        
+        ## 环境变量
+        | 变量名 | 描述 | 默认值 |
+        |--------|------|--------|
+        | TZ | 时区设置 | Asia/Shanghai |
+        
+        EOF
+
+    - name: 上传部署说明
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-instructions-${{ github.event.inputs.version }}
+        path: deployment-instructions.md
+
+    - name: 输出部署信息
+      run: |
+        echo "🎉 Docker 镜像构建成功！"
+        echo "📦 镜像地址: ${{ env.IMAGE_TAG }}"
+        echo "🏷️  Latest 标签: ${{ env.IMAGE_LATEST }}"
+        echo "🚀 可以使用以下命令部署："
+        echo "   docker run -d --name music-web-gd -p 80:80 ${{ env.IMAGE_TAG }}"
