@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useMusicStore } from '../stores/music'
 import { useAppStore } from '../stores/app'
 
@@ -234,6 +234,18 @@ if (audioPlayer.value) {
   audioPlayer.value.volume = volume.value / 100
 }
 
+// 处理歌词跳转事件
+const handleSeekToTime = (event) => {
+  if (audioPlayer.value && event.detail && event.detail.time !== undefined) {
+    audioPlayer.value.currentTime = event.detail.time
+    // 如果当前是暂停状态，也开始播放
+    if (!isPlaying.value) {
+      audioPlayer.value.play()
+      isPlaying.value = true
+    }
+  }
+}
+
 onMounted(() => {
   // 页面加载时恢复音量
   if (audioPlayer.value) {
@@ -248,6 +260,14 @@ onMounted(() => {
       audioPlayer.value.currentTime = savedTime
     }
   }
+  
+  // 监听歌词跳转事件
+  window.addEventListener('seek-to-time', handleSeekToTime)
+})
+
+onUnmounted(() => {
+  // 移除歌词跳转事件监听
+  window.removeEventListener('seek-to-time', handleSeekToTime)
 })
 </script>
 
