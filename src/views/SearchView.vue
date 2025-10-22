@@ -26,7 +26,7 @@
     </div>
 
     <div v-else class="song-list-container">
-      <div class="song-list">
+      <div class="song-list" ref="songListRef">
       <div 
         v-for="(song, index) in searchResults" 
         :key="song.id + song.source"
@@ -56,13 +56,24 @@
           </button>
         </div>
       </div>
+      
+      <!-- 加载更多提示 -->
+      <div v-if="searchLoading && searchResults.length > 0" class="loading-more">
+        <i class="fas fa-spinner fa-spin"></i>
+        <span>加载更多...</span>
+      </div>
+      
+      <!-- 没有更多提示 -->
+      <div v-if="!hasMoreResults && searchResults.length > 0 && !searchLoading" class="no-more">
+        <span>已加载全部结果</span>
+      </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useMusicStore } from '../stores/music'
 import { useAppStore } from '../stores/app'
 import ParticleBackground from '../components/ParticleBackground.vue'
@@ -75,8 +86,10 @@ const searchResults = computed(() => musicStore.searchResults)
 const currentSong = computed(() => musicStore.currentSong)
 const searchLoading = computed(() => musicStore.searchLoading)
 const showLyrics = computed(() => musicStore.showLyrics)
+const hasMoreResults = computed(() => musicStore.hasMoreResults)
 
 const loadingSongIndex = ref(null)
+const songListRef = ref(null)
 
 const handlePlay = async (song, index) => {
   loadingSongIndex.value = index
@@ -137,6 +150,33 @@ const downloadSong = async (song) => {
     toast.error('下载失败，请稍后重试')
   }
 }
+
+// 滚动加载处理
+const handleScroll = (event) => {
+  const element = event.target
+  const scrollTop = element.scrollTop
+  const scrollHeight = element.scrollHeight
+  const clientHeight = element.clientHeight
+  
+  // 当滚动到距离底部100px时加载更多
+  if (scrollHeight - scrollTop - clientHeight < 100 && hasMoreResults.value && !searchLoading.value) {
+    musicStore.loadMoreSearchResults()
+  }
+}
+
+onMounted(() => {
+  // 添加滚动监听
+  if (songListRef.value) {
+    songListRef.value.addEventListener('scroll', handleScroll)
+  }
+})
+
+onUnmounted(() => {
+  // 移除滚动监听
+  if (songListRef.value) {
+    songListRef.value.removeEventListener('scroll', handleScroll)
+  }
+})
 </script>
 
 <style scoped>
@@ -417,5 +457,54 @@ const downloadSong = async (song) => {
 .song-actions button.download-btn:hover {
   background: rgba(0, 212, 255, 0.4) !important;
   box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+.loading-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px 20px;
+  color: #64ffda;
+  font-size: 14px;
+}
+
+.loading-more i {
+  font-size: 18px;
+}
+
+.no-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  color: #8892b0;
+  font-size: 13px;
+}
+
+.no-more span {
+  position: relative;
+  padding: 0 20px;
+}
+
+.no-more span::before,
+.no-more span::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(100, 255, 218, 0.3));
+}
+
+.no-more span::before {
+  right: 100%;
+  margin-right: 10px;
+}
+
+.no-more span::after {
+  left: 100%;
+  margin-left: 10px;
+  background: linear-gradient(to left, transparent, rgba(100, 255, 218, 0.3));
 }
 </style>

@@ -29,9 +29,12 @@ export const useMusicStore = defineStore('music', () => {
   const currentIndex = ref(loadFromStorage('currentIndex', 0))
   const showLyrics = ref(loadFromStorage('showLyrics', false))
   const lyrics = ref(loadFromStorage('lyrics', { lyric: '', tlyric: '' }))
-  const loading = ref(false) // 播放加载状态（保留用于兼容）
+  const loading = ref(false) // 播放加载状态(保留用于兼容)
   const searchLoading = ref(false) // 搜索加载状态
   const currentSource = ref(loadFromStorage('currentSource', 'netease'))
+  const currentPage = ref(1) // 当前搜索页码
+  const hasMoreResults = ref(true) // 是否还有更多结果
+  const lastSearchKeyword = ref('') // 上次搜索的关键词
 
   // 监听并保存到 localStorage
   watch(searchResults, (newValue) => {
@@ -66,12 +69,63 @@ export const useMusicStore = defineStore('music', () => {
   const searchMusic = async (keyword, source = 'netease') => {
     searchLoading.value = true
     currentSource.value = source
+    lastSearchKeyword.value = keyword
+    currentPage.value = 1
+    hasMoreResults.value = true
     try {
       const data = await musicApi.searchMusic(keyword, source, 30, 1)
       searchResults.value = data || []
+      // 如果返回结果少于30条，说明没有更多结果了
+      if (!data || data.length < 30) {
+        hasMoreResults.value = false
+      }
     } catch (error) {
       console.error('搜索失败:', error)
       searchResults.value = []
+      hasMoreResults.value = false
+    } finally {
+      searchLoading.value = false
+    }
+  }
+
+  // 加载更多搜索结果
+  const loadMoreSearchResults = async () => {
+    if (searchLoading.value || !hasMoreResults.value || !lastSearchKeyword.value) {
+      return
+    }
+    
+    searchLoading.value = true
+    currentPage.value++
+    
+    try {
+      const data = await musicApi.searchMusic(
+        lastSearchKeyword.value,
+        currentSource.value,
+        30,
+        currentPage.value
+      )
+      
+      if (data && data.length > 0) {
+        // 过滤掉已存在的歌曲(根据id和source去重)
+        const existingIds = new Set(
+          searchResults.value.map(song => `${song.id}-${song.source}`)
+        )
+        const newSongs = data.filter(
+          song => !existingIds.has(`${song.id}-${song.source}`)
+        )
+        
+        searchResults.value = [...searchResults.value, ...newSongs]
+        
+        // 如果返回结果少于30条，说明没有更多结果了
+        if (data.length < 30) {
+          hasMoreResults.value = false
+        }
+      } else {
+        hasMoreResults.value = false
+      }
+    } catch (error) {
+      console.error('加载更多失败:', error)
+      hasMoreResults.value = false
     } finally {
       searchLoading.value = false
     }
@@ -215,7 +269,11 @@ export const useMusicStore = defineStore('music', () => {
     loading,
     searchLoading,
     currentSource,
+    currentPage,
+    hasMoreResults,
+    lastSearchKeyword,
     searchMusic,
+    loadMoreSearchResults,
     playSong,
     playNext,
     playPrevious,
