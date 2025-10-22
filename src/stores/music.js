@@ -29,7 +29,8 @@ export const useMusicStore = defineStore('music', () => {
   const currentIndex = ref(loadFromStorage('currentIndex', 0))
   const showLyrics = ref(loadFromStorage('showLyrics', false))
   const lyrics = ref(loadFromStorage('lyrics', { lyric: '', tlyric: '' }))
-  const loading = ref(false)
+  const loading = ref(false) // 播放加载状态（保留用于兼容）
+  const searchLoading = ref(false) // 搜索加载状态
   const currentSource = ref(loadFromStorage('currentSource', 'netease'))
 
   // 监听并保存到 localStorage
@@ -63,7 +64,7 @@ export const useMusicStore = defineStore('music', () => {
 
   // 搜索音乐
   const searchMusic = async (keyword, source = 'netease') => {
-    loading.value = true
+    searchLoading.value = true
     currentSource.value = source
     try {
       const data = await musicApi.searchMusic(keyword, source, 30, 1)
@@ -72,7 +73,7 @@ export const useMusicStore = defineStore('music', () => {
       console.error('搜索失败:', error)
       searchResults.value = []
     } finally {
-      loading.value = false
+      searchLoading.value = false
     }
   }
 
@@ -212,6 +213,7 @@ export const useMusicStore = defineStore('music', () => {
     lyrics,
     parsedLyrics,
     loading,
+    searchLoading,
     currentSource,
     searchMusic,
     playSong,

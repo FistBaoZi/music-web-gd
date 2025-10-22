@@ -43,6 +43,16 @@ watch(musicSource, (newValue) => {
   musicStore.currentSource = newValue
 })
 
+// 监听 appStore 的搜索关键词变化
+watch(() => appStore.searchKeyword, (newValue) => {
+  if (newValue) {
+    searchKeyword.value = newValue
+    handleSearch()
+    // 清除 store 中的关键词
+    appStore.setSearchKeyword('')
+  }
+})
+
 const handleSearch = () => {
   if (searchKeyword.value.trim()) {
     musicStore.searchMusic(searchKeyword.value, musicSource.value)

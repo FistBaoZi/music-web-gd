@@ -56,13 +56,14 @@ const hotTags = ref([
 ])
 
 const searchTag = (tag) => {
-  musicStore.searchMusic(tag, 'netease')
-  appStore.setCurrentView('search')
+  // 设置搜索关键词，Header 组件会自动响应并执行搜索
+  appStore.setSearchKeyword(tag)
 }
 
 const showCacheInfo = () => {
   const size = getCacheSize()
-  alert(`当前缓存大小: ${size}\n\n包含:\n- 播放列表\n- 当前播放歌曲\n- 播放进度\n- 搜索历史\n- 用户设置`)
+  const info = `当前缓存大小: ${size}\n\n包含:\n- 播放列表\n- 当前播放歌曲\n- 播放进度\n- 搜索历史\n- 用户设置`
+  alert(info)
 }
 
 const clearCache = () => {

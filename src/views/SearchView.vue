@@ -2,32 +2,41 @@
   <div class="search-view">
     <ParticleBackground />
     <div class="search-header">
-      <h2>搜索结果</h2>
-      <p v-if="searchResults.length > 0">找到 {{ searchResults.length }} 首歌曲 · 双击歌曲播放</p>
+      <div class="header-left">
+        <div class="title-with-loading">
+          <h2>搜索结果</h2>
+          <i v-if="searchLoading && searchResults.length > 0" class="fas fa-spinner fa-spin search-loading-icon"></i>
+        </div>
+        <p v-if="searchResults.length > 0 && !searchLoading">找到 {{ searchResults.length }} 首歌曲 · 双击歌曲播放</p>
+        <p v-if="searchLoading && searchResults.length > 0" class="searching-text">正在搜索...</p>
+      </div>
+      <div class="header-actions" v-if="searchResults.length > 0">
+        <button @click="addAllToPlaylist" class="add-all-btn">
+          <i class="fas fa-plus-circle"></i> 全部添加到播放列表
+        </button>
+      </div>
     </div>
 
-    <div v-if="loading && searchResults.length === 0" class="loading">
-      <i class="fas fa-spinner fa-spin"></i>
-      <p>加载中...</p>
+    <div v-if="searchResults.length === 0" class="empty">
+      <i v-if="!searchLoading" class="fas fa-search"></i>
+      <i v-else class="fas fa-spinner fa-spin"></i>
+      <p v-if="!searchLoading">暂无搜索结果</p>
+      <p v-else>搜索中...</p>
+      <p v-if="!searchLoading" class="hint">在顶部搜索框输入歌曲名、歌手或专辑</p>
     </div>
 
-    <div v-else-if="searchResults.length === 0" class="empty">
-      <i class="fas fa-search"></i>
-      <p>暂无搜索结果</p>
-      <p class="hint">在顶部搜索框输入歌曲名、歌手或专辑</p>
-    </div>
-
-    <div v-else class="song-list">
+    <div v-else class="song-list-container">
+      <div class="song-list">
       <div 
         v-for="(song, index) in searchResults" 
         :key="song.id + song.source"
         class="song-item"
-        :class="{ playing: currentSong?.id === song.id, loading: loadingSongId === song.id }"
-        @dblclick="handlePlay(song)"
+        :class="{ playing: currentSong?.id === song.id, loading: loadingSongIndex === index }"
+        @dblclick="handlePlay(song, index)"
       >
         <div class="song-index">
-          <span v-if="currentSong?.id !== song.id && loadingSongId !== song.id">{{ index + 1 }}</span>
-          <i v-else-if="loadingSongId === song.id" class="fas fa-spinner fa-spin loading-icon"></i>
+          <span v-if="currentSong?.id !== song.id && loadingSongIndex !== index">{{ index + 1 }}</span>
+          <i v-else-if="loadingSongIndex === index" class="fas fa-spinner fa-spin loading-icon"></i>
           <i v-else class="fas fa-volume-up playing-icon"></i>
         </div>
         <div class="song-info">
@@ -36,7 +45,7 @@
         </div>
         <div class="song-album">{{ song.album }}</div>
         <div class="song-actions">
-          <button @click="handlePlay(song)" title="播放">
+          <button @click="handlePlay(song, index)" title="播放">
             <i class="fas fa-play"></i>
           </button>
           <button @click="addToPlaylist(song)" title="添加到播放列表">
@@ -47,6 +56,7 @@
           </button>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -56,31 +66,48 @@ import { computed, ref } from 'vue'
 import { useMusicStore } from '../stores/music'
 import { useAppStore } from '../stores/app'
 import ParticleBackground from '../components/ParticleBackground.vue'
+import toast from '../utils/toast'
 
 const musicStore = useMusicStore()
 const appStore = useAppStore()
 
 const searchResults = computed(() => musicStore.searchResults)
 const currentSong = computed(() => musicStore.currentSong)
-const loading = computed(() => musicStore.loading)
+const searchLoading = computed(() => musicStore.searchLoading)
 const showLyrics = computed(() => musicStore.showLyrics)
 
-const loadingSongId = ref(null)
+const loadingSongIndex = ref(null)
 
-const handlePlay = async (song) => {
-  loadingSongId.value = song.id
+const handlePlay = async (song, index) => {
+  loadingSongIndex.value = index
   try {
     await musicStore.playSong(song)
     // 播放歌曲后可选择自动跳转到歌词页面
     // appStore.setCurrentView('lyrics')
   } finally {
-    loadingSongId.value = null
+    loadingSongIndex.value = null
   }
 }
 
 const addToPlaylist = (song) => {
   if (!musicStore.playlist.find(item => item.id === song.id)) {
     musicStore.playlist.push(song)
+  }
+}
+
+const addAllToPlaylist = () => {
+  let addedCount = 0
+  searchResults.value.forEach(song => {
+    if (!musicStore.playlist.find(item => item.id === song.id)) {
+      musicStore.playlist.push(song)
+      addedCount++
+    }
+  })
+  
+  if (addedCount > 0) {
+    toast.success(`已添加 ${addedCount} 首歌曲到播放列表`)
+  } else {
+    toast.info('所有歌曲已在播放列表中')
   }
 }
 
@@ -91,7 +118,7 @@ const downloadSong = async (song) => {
     const urlData = await musicApi.getSongUrl(song.id, song.source || musicStore.currentSource, 320)
     
     if (!urlData.url) {
-      alert('无法获取歌曲下载链接')
+      toast.error('无法获取歌曲下载链接')
       return
     }
 
@@ -104,10 +131,10 @@ const downloadSong = async (song) => {
     link.click()
     document.body.removeChild(link)
     
-    console.log(`正在下载: ${song.name}`)
+    toast.success(`正在下载: ${song.name}`)
   } catch (error) {
     console.error('下载失败:', error)
-    alert('下载失败，请稍后重试')
+    toast.error('下载失败，请稍后重试')
   }
 }
 </script>
@@ -116,36 +143,100 @@ const downloadSong = async (song) => {
 .search-view {
   padding: 30px;
   position: relative;
-  min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .search-header {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   position: relative;
   z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.search-header h2 {
+.title-with-loading {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-left h2 {
   font-size: 28px;
   color: #ccd6f6;
   margin-bottom: 10px;
 }
 
-.search-header p {
+.search-loading-icon {
+  font-size: 24px;
+  color: #64ffda;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.header-left p {
   color: #8892b0;
   font-size: 14px;
 }
 
-.loading, .empty {
+.searching-text {
+  color: #64ffda !important;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.add-all-btn {
+  padding: 10px 20px;
+  border: none;
+  background: linear-gradient(135deg, rgba(100, 255, 218, 0.8), rgba(100, 200, 255, 0.8));
+  color: #0f0c29;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(100, 255, 218, 0.3);
+}
+
+.add-all-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(100, 255, 218, 0.5);
+  background: linear-gradient(135deg, rgba(100, 255, 218, 1), rgba(100, 200, 255, 1));
+}
+
+.add-all-btn:active {
+  transform: translateY(0);
+}
+
+.empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 1;
   padding: 80px 20px;
   color: #999;
 }
 
-.loading i, .empty i {
+.empty i {
   font-size: 64px;
   margin-bottom: 20px;
   color: #ddd;
@@ -157,12 +248,38 @@ const downloadSong = async (song) => {
   margin-top: 10px;
 }
 
+.song-list-container {
+  flex: 1;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
 .song-list {
   background: rgba(30, 30, 50, 0.4);
   border-radius: 12px;
-  overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(100, 255, 218, 0.1);
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.song-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.song-list::-webkit-scrollbar-track {
+  background: rgba(30, 30, 50, 0.4);
+  border-radius: 4px;
+}
+
+.song-list::-webkit-scrollbar-thumb {
+  background: rgba(100, 255, 218, 0.3);
+  border-radius: 4px;
+}
+
+.song-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 255, 218, 0.5);
 }
 
 .song-item {
@@ -196,11 +313,11 @@ const downloadSong = async (song) => {
 }
 
 .loading-icon {
-  color: #64ffda;
+  color: #00d4ff;
 }
 
 .song-item.loading {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.05), transparent);
+  background: linear-gradient(90deg, rgba(100, 255, 218, 0.05), transparent);
   pointer-events: none;
   opacity: 0.7;
 }
@@ -264,8 +381,8 @@ const downloadSong = async (song) => {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(100, 255, 218, 0.8);
-  color: #0f0c29;
+  background: rgba(100, 255, 218, 0.2);
+  color: #64ffda;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -273,29 +390,32 @@ const downloadSong = async (song) => {
   justify-content: center;
   transition: all 0.3s;
   font-size: 13px;
+  border: 1px solid rgba(100, 255, 218, 0.3);
 }
 
 .song-item:hover .song-actions button {
-  background: rgba(100, 255, 218, 0.9);
+  background: rgba(100, 255, 218, 0.3);
   transform: scale(1.05);
 }
 
 .song-actions button:hover {
-  background: #64ffda !important;
+  background: rgba(100, 255, 218, 0.4) !important;
   transform: scale(1.15) !important;
-  box-shadow: 0 0 15px rgba(100, 255, 218, 0.6);
+  box-shadow: 0 0 15px rgba(100, 255, 218, 0.5);
 }
 
 .song-actions button.download-btn {
-  background: rgba(0, 212, 255, 0.8);
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
 }
 
 .song-item:hover .song-actions button.download-btn {
-  background: rgba(0, 212, 255, 0.9);
+  background: rgba(0, 212, 255, 0.3);
 }
 
 .song-actions button.download-btn:hover {
-  background: #00d4ff !important;
-  box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+  background: rgba(0, 212, 255, 0.4) !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
 }
 </style>

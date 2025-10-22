@@ -58,6 +58,7 @@
 import { computed, ref } from 'vue'
 import { useMusicStore } from '../stores/music'
 import ParticleBackground from '../components/ParticleBackground.vue'
+import toast from '../utils/toast'
 
 const musicStore = useMusicStore()
 
@@ -82,6 +83,7 @@ const removeFromPlaylist = (index) => {
 const clearPlaylist = () => {
   if (confirm('确定要清空播放列表吗?')) {
     musicStore.clearPlaylist()
+    toast.success('播放列表已清空')
   }
 }
 
@@ -90,6 +92,7 @@ const downloadSong = async (song) => {
     // 如果歌曲已经有URL，直接下载
     if (song.url) {
       downloadFromUrl(song.url, `${song.name} - ${song.artist?.join(', ')}.mp3`)
+      toast.success(`正在下载: ${song.name}`)
       return
     }
 
@@ -98,14 +101,15 @@ const downloadSong = async (song) => {
     const urlData = await musicApi.getSongUrl(song.id, song.source || 'netease', 320)
     
     if (!urlData.url) {
-      alert('无法获取歌曲下载链接')
+      toast.error('无法获取歌曲下载链接')
       return
     }
 
     downloadFromUrl(urlData.url, `${song.name} - ${song.artist?.join(', ')}.mp3`)
+    toast.success(`正在下载: ${song.name}`)
   } catch (error) {
     console.error('下载失败:', error)
-    alert('下载失败，请稍后重试')
+    toast.error('下载失败，请稍后重试')
   }
 }
 
