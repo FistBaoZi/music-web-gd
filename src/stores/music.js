@@ -35,6 +35,7 @@ export const useMusicStore = defineStore('music', () => {
   const currentPage = ref(1) // 当前搜索页码
   const hasMoreResults = ref(true) // 是否还有更多结果
   const lastSearchKeyword = ref('') // 上次搜索的关键词
+  const favorites = ref(loadFromStorage('favorites', [])) // 收藏列表
 
   // 监听并保存到 localStorage
   watch(searchResults, (newValue) => {
@@ -64,6 +65,10 @@ export const useMusicStore = defineStore('music', () => {
   watch(currentSource, (newValue) => {
     saveToStorage('currentSource', newValue)
   })
+
+  watch(favorites, (newValue) => {
+    saveToStorage('favorites', newValue)
+  }, { deep: true })
 
   // 搜索音乐
   const searchMusic = async (keyword, source = 'netease') => {
@@ -220,6 +225,48 @@ export const useMusicStore = defineStore('music', () => {
     showLyrics.value = !showLyrics.value
   }
 
+  // 添加到收藏
+  const addToFavorites = (song) => {
+    const exists = favorites.value.find(
+      item => item.id === song.id && item.source === song.source
+    )
+    if (!exists) {
+      favorites.value.push(song)
+      return true
+    }
+    return false
+  }
+
+  // 从收藏移除
+  const removeFromFavorites = (song) => {
+    const index = favorites.value.findIndex(
+      item => item.id === song.id && item.source === song.source
+    )
+    if (index !== -1) {
+      favorites.value.splice(index, 1)
+      return true
+    }
+    return false
+  }
+
+  // 检查是否已收藏
+  const isFavorite = (song) => {
+    return favorites.value.some(
+      item => item.id === song.id && item.source === song.source
+    )
+  }
+
+  // 切换收藏状态
+  const toggleFavorite = (song) => {
+    if (isFavorite(song)) {
+      removeFromFavorites(song)
+      return false
+    } else {
+      addToFavorites(song)
+      return true
+    }
+  }
+
   // 解析歌词
   const parsedLyrics = computed(() => {
     const parseLrc = (lrcText) => {
@@ -272,6 +319,7 @@ export const useMusicStore = defineStore('music', () => {
     currentPage,
     hasMoreResults,
     lastSearchKeyword,
+    favorites,
     searchMusic,
     loadMoreSearchResults,
     playSong,
@@ -280,6 +328,10 @@ export const useMusicStore = defineStore('music', () => {
     playRandom,
     removeFromPlaylist,
     clearPlaylist,
-    toggleLyrics
+    toggleLyrics,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite,
+    toggleFavorite
   }
 })

@@ -7,6 +7,7 @@
       <div class="content">
         <SearchView v-if="currentView === 'search'" />
         <PlaylistView v-else-if="currentView === 'playlist'" />
+        <FavoritesView v-else-if="currentView === 'favorites'" />
         <LyricsView v-else-if="currentView === 'lyrics'" />
         <DiscoverView v-else />
       </div>
@@ -27,6 +28,7 @@ import LyricsPanel from './components/LyricsPanel.vue'
 import ClickEffect from './components/ClickEffect.vue'
 import SearchView from './views/SearchView.vue'
 import PlaylistView from './views/PlaylistView.vue'
+import FavoritesView from './views/FavoritesView.vue'
 import LyricsView from './views/LyricsView.vue'
 import DiscoverView from './views/DiscoverView.vue'
 import { useAppStore } from './stores/app'

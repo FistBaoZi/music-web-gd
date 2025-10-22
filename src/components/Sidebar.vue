@@ -33,6 +33,14 @@
         <i class="fas fa-list"></i>
         <span>播放列表</span>
       </div>
+      <div 
+        class="nav-item"
+        :class="{ active: currentView === 'favorites' }"
+        @click="setView('favorites')"
+      >
+        <i class="fas fa-heart"></i>
+        <span>我的收藏</span>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <p>数据来源: GD音乐台</p>
