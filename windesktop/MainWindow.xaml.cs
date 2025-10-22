@@ -1,5 +1,9 @@
 using System.Windows;
 using Microsoft.Web.WebView2.Core;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Windows.Interop;
+using System.Runtime.InteropServices;
 
 namespace MusicPlayer;
 
@@ -8,6 +12,21 @@ namespace MusicPlayer;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private NotifyIcon? notifyIcon;
+    private bool isClosing = false;
+    private System.Windows.Threading.DispatcherTimer? resizeTimer;
+
+    // Windows API 用于优化窗口渲染
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+    
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    private const int GWL_STYLE = -16;
+    private const int WS_MAXIMIZEBOX = 0x10000;
+    private const int WS_MINIMIZEBOX = 0x20000;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -17,8 +36,158 @@ public partial class MainWindow : Window
         
         // 禁用窗口大小调整时的重绘优化
         this.UseLayoutRounding = true;
+
+        // 初始化系统托盘
+        InitializeNotifyIcon();
+
+        // 初始化调整大小防抖动定时器
+        InitializeResizeTimer();
         
         InitializeWebView();
+
+        // 窗口加载完成后优化渲染
+        this.Loaded += MainWindow_Loaded;
+        this.SizeChanged += MainWindow_SizeChanged;
+    }
+
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        // 禁用窗口动画，减少闪烁
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero)
+        {
+            // 优化窗口样式
+            int currentStyle = GetWindowLong(hwnd, GWL_STYLE);
+            SetWindowLong(hwnd, GWL_STYLE, currentStyle | WS_MAXIMIZEBOX | WS_MINIMIZEBOX);
+        }
+    }
+
+    private void InitializeResizeTimer()
+    {
+        // 创建防抖动定时器，减少调整大小时的重绘次数
+        resizeTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(100)
+        };
+        resizeTimer.Tick += (s, e) =>
+        {
+            resizeTimer?.Stop();
+            // 调整大小完成后，强制刷新 WebView
+            if (webView.CoreWebView2 != null)
+            {
+                // 通知 WebView 调整大小完成
+                webView.UpdateLayout();
+            }
+        };
+    }
+
+    private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // 使用防抖动，避免频繁重绘
+        resizeTimer?.Stop();
+        resizeTimer?.Start();
+    }
+
+    private void InitializeNotifyIcon()
+    {
+        try
+        {
+            // 创建系统托盘图标
+            notifyIcon = new NotifyIcon
+            {
+                Visible = false,
+                Text = "在线音乐播放器"
+            };
+
+            // 尝试加载图标
+            var iconPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "icon.ico");
+            if (System.IO.File.Exists(iconPath))
+            {
+                notifyIcon.Icon = new Icon(iconPath);
+            }
+            else
+            {
+                // 使用默认图标
+                notifyIcon.Icon = SystemIcons.Application;
+            }
+
+            // 双击托盘图标恢复窗口
+            notifyIcon.DoubleClick += (s, e) =>
+            {
+                ShowWindow();
+            };
+
+            // 创建右键菜单
+            var contextMenu = new ContextMenuStrip();
+            
+            var showMenuItem = new ToolStripMenuItem("显示主窗口");
+            showMenuItem.Click += (s, e) => ShowWindow();
+            contextMenu.Items.Add(showMenuItem);
+
+            contextMenu.Items.Add(new ToolStripSeparator());
+
+            var exitMenuItem = new ToolStripMenuItem("退出");
+            exitMenuItem.Click += (s, e) =>
+            {
+                isClosing = true;
+                System.Windows.Application.Current.Shutdown();
+            };
+            contextMenu.Items.Add(exitMenuItem);
+
+            notifyIcon.ContextMenuStrip = contextMenu;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"初始化系统托盘图标失败: {ex.Message}");
+        }
+    }
+
+    private void ShowWindow()
+    {
+        this.Show();
+        this.WindowState = WindowState.Normal;
+        this.Activate();
+        if (notifyIcon != null)
+        {
+            notifyIcon.Visible = false;
+        }
+    }
+
+    private void Window_StateChanged(object? sender, EventArgs e)
+    {
+        // 最小化时隐藏到系统托盘
+        if (this.WindowState == WindowState.Minimized)
+        {
+            this.Hide();
+            if (notifyIcon != null)
+            {
+                notifyIcon.Visible = true;
+                notifyIcon.ShowBalloonTip(2000, "在线音乐播放器", "已最小化到系统托盘", ToolTipIcon.Info);
+            }
+        }
+    }
+
+    private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        // 点击关闭按钮时最小化到托盘而不是关闭
+        if (!isClosing)
+        {
+            e.Cancel = true;
+            this.WindowState = WindowState.Minimized;
+        }
+        else
+        {
+            // 真正关闭时清理资源
+            if (notifyIcon != null)
+            {
+                notifyIcon.Visible = false;
+                notifyIcon.Dispose();
+                notifyIcon = null;
+            }
+            
+            resizeTimer?.Stop();
+            resizeTimer = null;
+        }
     }
 
     private async void InitializeWebView()
@@ -56,13 +225,13 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"初始化 WebView2 失败：{ex.Message}\n\n请确保已安装 Microsoft Edge WebView2 Runtime。",
                 "错误",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error
             );
-            Application.Current.Shutdown();
+            System.Windows.Application.Current.Shutdown();
         }
     }
 
@@ -76,13 +245,13 @@ public partial class MainWindow : Window
 
             if (!System.IO.Directory.Exists(distPath))
             {
-                MessageBox.Show(
+                System.Windows.MessageBox.Show(
                     $"未找到前端应用文件！\n\n路径：{distPath}\n\n请先运行构建脚本生成前端文件。",
                     "错误",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error
                 );
-                Application.Current.Shutdown();
+                System.Windows.Application.Current.Shutdown();
                 return;
             }
 
@@ -99,11 +268,11 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"加载前端应用失败：{ex.Message}",
                 "错误",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error
             );
         }
     }
@@ -116,11 +285,11 @@ public partial class MainWindow : Window
 
         if (!e.IsSuccess)
         {
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"页面加载失败！\n错误码：{e.WebErrorStatus}",
                 "导航错误",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning
             );
         }
     }

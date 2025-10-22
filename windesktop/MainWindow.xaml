@@ -10,7 +10,9 @@
         Width="1200"
         MinHeight="600"
         MinWidth="800"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        StateChanged="Window_StateChanged"
+        Closing="Window_Closing">
     
     <Grid>
         <!-- 加载提示层 -->
