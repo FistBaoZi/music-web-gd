@@ -146,11 +146,30 @@ npm run preview
 - 音乐资源版权归原作者所有
 - 请支持正版音乐
 
+## 桌面客户端
+
+本项目提供 Windows 桌面客户端版本：
+
+### 🪟 .NET 8 桌面版（推荐）
+- 📁 位置：`windesktop/` 目录
+- ⚡ 基于 .NET 8 + WebView2
+- 💪 性能优秀，体积小（约 70-80 MB 单文件）
+- 📖 查看详情：[windesktop/README.md](windesktop/README.md)
+- 🚀 快速开始：[windesktop/QUICKSTART.md](windesktop/QUICKSTART.md)
+
+**快速构建：**
+```bash
+cd windesktop
+build.bat        # 开发构建
+publish.bat      # 发布单文件版本
+```
+
 ## 开发计划
 
 - [x] 添加歌词页面
 - [x] 数据持久化功能
 - [x] 歌曲下载功能
+- [x] .NET 8 桌面客户端
 - [ ] 添加收藏功能
 - [ ] 支持歌单导入
 - [ ] 优化移动端体验

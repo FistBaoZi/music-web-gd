@@ -1,0 +1,50 @@
+# .NET 项目忽略文件
+
+## Build results
+bin/
+obj/
+publish/
+wwwroot/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## User-specific files
+*.rsuser
+
+## Mono Auto Generated Files
+mono_crash.*
+
+## Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+## Folder config file
+Desktop.ini
+
+## Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+## VS Code
+.vscode/
+
+## Rider
+.idea/
+*.sln.iml
+
+## NuGet Packages
+*.nupkg
+*.snupkg
+**/packages/*
+
+## WebView2 用户数据
+**/WebView2/

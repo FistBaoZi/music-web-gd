@@ -2,15 +2,11 @@
   "name": "online-music-player",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist-electron/main.js",
-  "author": "Your Name",
-  "description": "在线音乐播放器 Windows 客户端",
+  "author": "FistBaoZi",
+  "description": "在线音乐播放器",
   "scripts": {
     "dev": "vite",
-    "dev:electron": "vite --mode electron",
     "build": "vite build",
-    "build:electron": "vite build --mode electron && electron-builder",
-    "build:win": "vite build --mode electron && electron-builder --win",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,10 +16,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
-    "electron": "^38.3.0",
-    "electron-builder": "^26.0.12",
-    "vite": "^5.1.6",
-    "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite": "^5.1.6"
   }
 }

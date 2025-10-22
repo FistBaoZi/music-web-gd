@@ -12,15 +12,31 @@ dist-ssr
 *.sln
 *.sw?
 
-# Electron 相关
-dist-electron
-release
-*.exe
-*.dmg
-*.AppImage
-*.deb
-*.rpm
+# .NET 桌面应用相关
+windesktop/bin/
+windesktop/obj/
+windesktop/publish/
+windesktop/publish-singlefile/
+windesktop/wwwroot/
 
-# Electron 构建缓存
-out
-build/cache
+# .NET 用户配置
+*.user
+*.userosscache
+*.suo
+
+# Visual Studio
+.vs/
+windesktop/.vs/
+
+# Rider
+.idea/
+*.sln.iml
+
+# WebView2 用户数据
+**/WebView2/
+
+# 构建输出
+*.dll
+*.exe
+*.pdb
+!windesktop/icon.ico
